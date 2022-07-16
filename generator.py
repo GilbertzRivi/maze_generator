@@ -1,7 +1,5 @@
-from pstats import SortKey
 import random, time, json
 from PIL import Image, ImageDraw
-from numpy import sort
 
 class v2d:
     def __init__(self, x: int, y: int) -> object:
