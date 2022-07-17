@@ -129,7 +129,7 @@ def write_animation(animation: dict) -> None:
     with open('changes.json', 'w') as file:
         file.write(json.dumps(animation))
 
-def write_maze(width: int, height: int, dwith: int, dheight: int, maze: dict):
+def write_maze(width: int, height: int, dwidth: int, dheight: int, maze: dict):
     maze_img = Image.new('1', size=(width+2, height+2))
     maze_draw = ImageDraw.Draw(maze_img)
     maze_draw.point(xy=(0, 1), fill=1)
