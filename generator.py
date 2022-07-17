@@ -1,3 +1,4 @@
+from asyncore import write
 import random, time, json
 from PIL import Image, ImageDraw
 
@@ -73,79 +74,94 @@ def maze_jsonize(maze: dict) -> dict:
             dict[x][y] = tile.type
     return dict
 
-width = int(input('maze width/height: '))
-height = width
-dwidth = int(input('image width/height: '))
-dheight = dwidth
+def maze_init(width: int, height: int) -> dict:
+    maze = {}
 
-start = time.time()
-
-cp = v2d(0, 0)
-directions = {'r': v2d(1,0),'l': v2d(-1,0),'u': v2d(0,1),'d': v2d(0,-1)}
-stack = [cp.copy()]
-
-maze = {}
-
-for x in range(width):
-    maze[x] = {}
-    for y in range(height):
-        maze[x][y] = tile(v2d(x, y), 'w')
-
-change_tile_type(maze, cp, 'p')
-
-animation = {'start': None, 'changes': []}
-animation['start'] = maze_jsonize(maze)
-
-prev_dir = None
-dir_couter = 0
-
-while True:
-    available_directions = []
-    for dir in directions.values():
-        if  cp.x + dir.x in range(width) and \
-            cp.y + dir.y in range(height) and \
-            maze[cp.x + dir.x][cp.y + dir.y].type == 'w' and \
-            [tile.type for tile in check_tile_neighbours(maze, cp + dir)].count('p') <= 2:
-            available_directions.append(dir)
-
-    changed = False
-
-    if len(stack) == 0:
-        break
-
-    if len(available_directions) == 0:
-        cp = stack.pop()
+    for x in range(width):
+        maze[x] = {}
+        for y in range(height):
+            maze[x][y] = tile(v2d(x, y), 'w')
     
-    else:
-        if prev_dir in available_directions and dir_couter < 1:
-            dir = prev_dir
-            dir_couter += 1
+    return maze
+
+def generate_maze(maze: dict, width: int, height: int, animation: dict, cp: v2d):
+        
+    prev_dir = None
+    dir_couter = 0
+    directions = {'r': v2d(1,0),'l': v2d(-1,0),'u': v2d(0,1),'d': v2d(0,-1)}
+    stack = [cp.copy()]
+    
+    while True:
+        available_directions = []
+        for dir in directions.values():
+            if  cp.x + dir.x in range(width) and \
+                cp.y + dir.y in range(height) and \
+                maze[cp.x + dir.x][cp.y + dir.y].type == 'w' and \
+                [tile.type for tile in check_tile_neighbours(maze, cp + dir)].count('p') <= 2:
+                available_directions.append(dir)
+
+        changed = False
+
+        if len(stack) == 0:
+            break
+
+        if len(available_directions) == 0:
+            cp = stack.pop()
+        
         else:
-            dir = random.choice(available_directions)
-            dir_couter = 0
-        cp += dir
-        prev_dir = dir
-        change_tile_type(maze, cp, 'p')
-        changed = True
-        stack.append(cp.copy())
+            if prev_dir in available_directions and dir_couter < 1:
+                dir = prev_dir
+                dir_couter += 1
+            else:
+                dir = random.choice(available_directions)
+                dir_couter = 0
+            cp += dir
+            prev_dir = dir
+            change_tile_type(maze, cp, 'p')
+            changed = True
+            stack.append(cp.copy())
 
-    animation['changes'].append({'x': cp.x, 'y': cp.y, 'changed': changed})
+        animation['changes'].append({'x': cp.x, 'y': cp.y, 'changed': changed})
+    
+    return maze, animation
 
-end = time.time()
+def write_animation(animation: dict) -> None:
+    with open('changes.json', 'w') as file:
+        file.write(json.dumps(animation))
 
-print(f'Generated maze {width}x{height} in {round(end-start, 2)}s')
+def write_maze(width: int, height: int, dwith: int, dheight: int, maze: dict):
+    maze_img = Image.new('1', size=(width+2, height+2))
+    maze_draw = ImageDraw.Draw(maze_img)
+    maze_draw.point(xy=(0, 1), fill=1)
+    maze_draw.point(xy=(width+1, height), fill=1)
+    for x in maze:
+        for y in maze[x]:
+            tile = maze[x][y]
+            if tile.type == 'p':
+                maze_draw.point(xy=(tile.coordinates.x+1, tile.coordinates.y+1), fill=1)
 
-with open('changes.json', 'w') as file:
-    file.write(json.dumps(animation))
+    maze_img.resize((dwidth, dheight), resample=0).save(fp='./maze.png')
 
-maze_img = Image.new('1', size=(width+2, height+2))
-maze_draw = ImageDraw.Draw(maze_img)
-maze_draw.point(xy=(0, 1), fill=1)
-maze_draw.point(xy=(width+1, height), fill=1)
-for x in maze:
-    for y in maze[x]:
-        tile = maze[x][y]
-        if tile.type == 'p':
-            maze_draw.point(xy=(tile.coordinates.x+1, tile.coordinates.y+1), fill=1)
+def start(width: int, dwidth: int):
+    
+    height = width
+    dheight = dwidth
+    start = time.time()
+    
+    maze = maze_init(width, height)
+    cp = v2d(0, 0)
+    change_tile_type(maze, cp, 'p')
+    
+    animation = {'start': None, 'changes': []}
+    animation['start'] = maze_jsonize(maze)
+    maze, animation = generate_maze(maze, width, height, animation, cp)
+    end = time.time()
+    print(f'Generated maze {width}x{height} in {round(end-start, 2)}s')
+    write_animation(animation)
+    write_maze(width, height, dwidth, dheight, maze)
 
-maze_img.resize((dwidth, dheight), resample=0).save(fp='./maze.png')
+if __name__ == '__main__':
+    
+    width = int(input('maze width/height: '))
+    dwidth = int(input('image width/height: '))
+    start(width, dwidth)
