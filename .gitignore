@@ -3,3 +3,4 @@
 *.png
 temp/*
 __pycache__
+*.txt
