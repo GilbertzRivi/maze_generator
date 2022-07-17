@@ -142,7 +142,7 @@ def write_maze(width: int, height: int, dwidth: int, dheight: int, maze: dict):
 
     maze_img.resize((dwidth, dheight), resample=0).save(fp='./maze.png')
 
-def start(width: int, dwidth: int):
+def start(width: int, dwidth: int, do_print: bool):
     
     height = width
     dheight = dwidth
@@ -156,7 +156,8 @@ def start(width: int, dwidth: int):
     animation['start'] = maze_jsonize(maze)
     maze, animation = generate_maze(maze, width, height, animation, cp)
     end = time.time()
-    print(f'Generated maze {width}x{height} in {round(end-start, 2)}s')
+    if do_print:
+        print(f'Generated maze {width}x{height} in {round(end-start, 2)}s')
     write_animation(animation)
     write_maze(width, height, dwidth, dheight, maze)
 
@@ -164,4 +165,4 @@ if __name__ == '__main__':
     
     width = int(input('maze width/height: '))
     dwidth = int(input('image width/height: '))
-    start(width, dwidth)
+    start(width, dwidth, True)
