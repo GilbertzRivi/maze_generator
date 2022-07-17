@@ -1,4 +1,5 @@
 *.json
 *.mp4
+*.png
 temp/*
 __pycache__
