@@ -151,9 +151,7 @@ if __name__ == '__main__':
     width = int(input('maze width/height: '))
     dwidth = int(input('image width/height: '))
     maze = Maze(width, width, v2d(0, 0), True)
-    print(maze.maze)
-    output = maze.generate_path()
-    print(output)
+    print(maze.generate_path())
     maze.write_maze(dwidth, dwidth, './maze.png')
     maze.write_animation('./changes.json')
     
