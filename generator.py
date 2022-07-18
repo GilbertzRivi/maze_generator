@@ -1,4 +1,3 @@
-from asyncore import write
 import random, time, json
 from PIL import Image, ImageDraw
 
