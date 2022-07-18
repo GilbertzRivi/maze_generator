@@ -1,3 +1,4 @@
+from unittest import skip
 from PIL import Image, ImageDraw
 from progress.bar import IncrementalBar as Bar
 import json, os
@@ -37,7 +38,10 @@ for x in start:
 os.mkdir('./temp')
 
 with Bar('Generating Images', max=divisor, suffix = '%(percent).1f%% - eta: %(eta)ds') as bar:
-    skip_frames = int(len(changes)/num_frames)
+    if len(changes) < num_frames:
+        skip_frames = 1
+    else:
+        skip_frames = int(len(changes)/num_frames)
     saved_frame_counter = 0
     for i, step in enumerate(changes):
         imdraw = ImageDraw.ImageDraw(base)
