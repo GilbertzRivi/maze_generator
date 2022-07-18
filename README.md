@@ -1,8 +1,6 @@
 # maze_generator
 You need to have ffmpeg installed for animation.py to work.
 
-The other packages you need to install are pillow, progress and json.
-
 To generate a maze, run generator.py, and input maze width/heigth (they are the same), then input resolution you'd like for your maze.png and wait.
 
 For maze 1200x1200 I was waiting about 70s, so this shouldn't take too long.
