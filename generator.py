@@ -1,33 +1,9 @@
-import random, time, json
+import random, time, json, numba
+import numpy as np
 from PIL import Image, ImageDraw
 
-class v2d:
-    def __init__(self, x: int, y: int) -> None:
-        self.x, self.y = x, y
-    
-    def __str__(self) -> str:
-        return f"{self.x}x {self.y}y"
-
-    def __add__(self, other) -> object:
-        return v2d(self.x + other.x, self.y + other.y)
-
-    def copy(self) -> object:
-        return f"{self.x}x {self.y}y"
-
-    def __add__(self, other) -> object:
-        return v2d(self.x + other.x, self.y + other.y)
-
-    def copy(self) -> object:
-        return v2d(self.x, self.y)
-
-    def __eq__(self, other: object) -> bool:
-        try:
-            return self.x == other.x and self.y == other.y
-        except AttributeError:
-            return False
-
 class tile:
-    def __init__(self, coordinates: v2d, type: str) -> None:
+    def __init__(self, coordinates: tuple, type: str) -> None:
         self.coordinates, self.type = coordinates, type
 
     def __str__(self) -> str:
@@ -40,58 +16,45 @@ class tile:
             return False
 
 class Maze:
-    def __init__(self, width: int, height: int, start: v2d, animation: bool = True) -> None:
-        self.width, self.height, self.cp, self.do_animate = width-2, height-2, start, animation
-        self.maze = {}
-        self.directions = {'r': v2d(1,0),'l': v2d(-1,0),'u': v2d(0,1),'d': v2d(0,-1)}
+    
+    directions_4 = [(1,0), (-1,0), (0,1), (0,-1)]
+    directions_8 = directions_4 + [(1, 1), (1, -1), (-1, 1), (-1, -1)]
 
-        for x in range(self.width):
-            self.maze[x] = {}
-            for y in range(self.height):
-                self.maze[x][y] = tile(v2d(x, y), 'w')
+    def __init__(self, width: int, height: int, start: tuple, animation: bool = True) -> None:
+        self.width, self.height, self.cp, self.do_animate = width-2, height-2, start, animation
+        self.maze = np.zeros((width, height), dtype=np.bool_)
         
-        self.__change_tile_type('p')
-        
+        self.__change_tile_type()
+                
         if self.do_animate:
             self.animation = {'start': None, 'changes': []}
             self.animation['start'] = self.__maze_json()
-            
-    def __change_tile_type(self, type: str) -> None:
-        tile = self.maze[self.cp.x][self.cp.y]
-        tile.type = type
 
-    def __check_tile_neighbours(self, coordinates: v2d) -> list:
+    def __change_tile_type(self) -> None:
+        self.maze[self.cp[0], self.cp[1]] = not self.maze[self.cp[0], self.cp[1]]
+
+    def __check_tile_neighbours(self, cp: tuple) -> list:
         neighbours = []
-        directions = [v2d(1,0), v2d(-1,0), v2d(0,1), v2d(0,-1), v2d(1, 1), v2d(1, -1), v2d(-1, 1), v2d(-1, -1)]
-        for dir in directions:
+        for dir in self.directions_8:
             try:
-                neighbours.append(self.maze[coordinates.x + dir.x][coordinates.y + dir.y])
+                neighbours.append(self.maze[cp[0] + dir[0], cp[1] + dir[1]])
             except KeyError:
                 pass
         return neighbours
-
-    def __maze_json(self) -> dict:
-        dict = {}
-        for x in self.maze:
-            dict[x] = {}
-            for y in self.maze[x]:
-                tile = self.maze[x][y]
-                dict[x][y] = tile.type
-        return dict
 
     def generate_path(self) -> str:
             
         prev_dir = None
         dir_couter = 0
-        stack = [self.cp.copy()]
+        stack = [self.cp]
         
         while True:
             available_directions = []
-            for dir in self.directions.values():
-                if  self.cp.x + dir.x in range(self.width) and \
-                    self.cp.y + dir.y in range(self.height) and \
-                    self.maze[self.cp.x + dir.x][self.cp.y + dir.y].type == 'w' and \
-                    [tile.type for tile in self.__check_tile_neighbours(self.cp + dir)].count('p') <= 2:
+            for dir in self.directions_4:
+                if  self.cp[0] + dir[0] in range(self.width) and \
+                    self.cp[1] + dir[1] in range(self.height) and \
+                    not self.maze[self.cp[0] + dir[0], self.cp[1] + dir[1]] and \
+                    [tile for tile in self.__check_tile_neighbours((self.cp[0] + dir[0], self.cp[1] + dir[1]))].count(True) <= 2:
                     available_directions.append(dir)
 
             changed = False
@@ -109,18 +72,27 @@ class Maze:
                 else:
                     dir = random.choice(available_directions)
                     dir_couter = 0
-                self.cp += dir
+                self.cp = (self.cp[0] + dir[0], self.cp[1] + dir[1])
                 prev_dir = dir
-                self.__change_tile_type('p')
+                self.__change_tile_type()
                 changed = True
-                stack.append(self.cp.copy())
+                stack.append(self.cp)
 
-            self.animation['changes'].append({'x': self.cp.x, 'y': self.cp.y, 'changed': changed})
+            if self.do_animate:
+                self.animation['changes'].append({'x': self.cp[0], 'y': self.cp[1], 'changed': changed})
         
         return f'Generated path for maze {self.width}x{self.height}'
 
+    def __maze_json(self) -> dict:
+        dict = {}
+        for x in range(self.width):
+            dict[x] = {}
+            for y in range(self.height):
+                dict[x][y] = bool(self.maze[x, y])
+        return dict
+        
     def write_animation(self, path: str) -> None:
-        if not self.animation:
+        if not self.do_animate:
             print('No animation has been generated')
         else:
             with open(path, 'w') as file:
@@ -135,11 +107,11 @@ class Maze:
         maze_draw = ImageDraw.Draw(maze_img)
         maze_draw.point(xy=(0, 1), fill=1)
         maze_draw.point(xy=(self.width+1, self.height), fill=1)
-        for x in self.maze:
-            for y in self.maze[x]:
+        for x in range(self.width):
+            for y in range(self.height):
                 tile = self.maze[x][y]
-                if tile.type == 'p':
-                    maze_draw.point(xy=(tile.coordinates.x+1, tile.coordinates.y+1), fill=1)
+                if tile:
+                    maze_draw.point(xy=(x+1, y+1), fill=1)
 
         maze_img.resize((dwidth, dheight), resample=0).save(fp=path)
 
@@ -156,7 +128,7 @@ if __name__ == '__main__':
         int(dwidth)
         
     start = time.time()
-    maze = Maze(width, width, v2d(0, 0), True)
+    maze = Maze(width, width, (0, 0), True)
     print(maze.generate_path())
     end = time.time()
     print(f'it took {round(end-start, 2)}s')
