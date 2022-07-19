@@ -148,11 +148,17 @@ class Maze:
 if __name__ == '__main__':
     
     width = int(input('maze width/height: '))
-    dwidth = int(input('image width/height: '))
+    dwidth = input('image width/height (if the same leave blank): ')
+    
+    if dwidth == '':
+        dwidth = width
+    else:
+        int(dwidth)
+        
     start = time.time()
     maze = Maze(width, width, v2d(0, 0), True)
     print(maze.generate_path())
-    maze.write_maze(dwidth, dwidth, './maze.png')
-    maze.write_animation('./changes.json')
     end = time.time()
     print(f'it took {round(end-start, 2)}s')
+    maze.write_maze(dwidth, dwidth, './maze.png')
+    maze.write_animation('./changes.json')
