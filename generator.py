@@ -125,7 +125,7 @@ if __name__ == '__main__':
     if dwidth == '':
         dwidth = width
     else:
-        int(dwidth)
+        dwidth = int(dwidth)
         
     start = time.time()
     maze = Maze(width, width, (0, 0), True)

@@ -53,6 +53,9 @@ with Bar('Generating Images', max=divisor, suffix = '%(percent).1f%% - eta: %(et
         if i % int(len(changes)/divisor) == 0:
             bar.next()
 
+if divisor > len(os.listdir('./temp')):
+    divisor = len(os.listdir('./temp')) 
+
 if dwidth != width:
     with Bar('Resizing Images', max=divisor, suffix = '%(percent).1f%% - eta: %(eta)ds') as bar:
         images_num = len(os.listdir('./temp'))
@@ -66,4 +69,7 @@ if dwidth != width:
                 bar.next()
 
 os.system(f'ffmpeg -r {fps} -s {dwidth}x{dheight} -i ./temp/%d.png -vcodec libx264 -crf 25 -pix_fmt yuv420p maze.mp4')
-os.system('rm -rf ./temp')
+
+for file in os.listdir('./temp'):
+    os.remove('./temp/'+file)
+os.rmdir('./temp')
