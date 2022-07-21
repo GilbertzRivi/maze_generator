@@ -28,42 +28,6 @@ def check_aviable_directions(cp, width, height, maze):
             available_directions.append(dir)
     return available_directions
 
-def not_class_generate_path(maze, width, height, cp, do_animate) -> None:
-        
-    prev_dir = None
-    dir_couter = 0
-    stack = [cp]
-    changes = []
-
-    while True: 
-        available_directions = check_aviable_directions(cp, width, height, maze)
-        changed = False
-
-        if len(stack) == 0:
-            break
-
-        if len(available_directions) == 0:
-            cp = stack.pop()
-        
-        else:
-            if prev_dir in available_directions and dir_couter < 1:
-                dir = prev_dir
-                dir_couter += 1
-            else:
-                dir = available_directions[int(np.random.random()*(len(available_directions)))]
-                dir_couter = 0
-                
-            cp = (cp[0] + dir[0], cp[1] + dir[1])
-            prev_dir = dir
-            maze[cp[0], cp[1]] = not maze[cp[0], cp[1]]
-            changed = True
-            stack.append(cp)
-
-        if do_animate:
-            changes.append({'x': cp[0], 'y': cp[1], 'changed': changed})
-
-    return changes
-
 class Maze:
 
     def __init__(self, width: int, height: int, start: tuple, animation: bool = True) -> None:
@@ -72,21 +36,43 @@ class Maze:
         
         self.maze[self.cp[0], self.cp[1]] = not self.maze[self.cp[0], self.cp[1]]
                 
-        self.animation = {'start': None, 'changes': []}
-        self.animation['start'] = self.__maze_json()
-
-    def __maze_json(self) -> dict:
-        dict = {}
-        for x in range(self.width):
-            dict[x] = {}
-            for y in range(self.height):
-                dict[x][y] = bool(self.maze[x, y])
-        return dict
+        self.animation = {'start': (width, height), 'changes': []}
         
-    def generate_path(self, spinner: bool = True):
-        self.animation['changes'] = not_class_generate_path(self.maze, self.width, self.height, self.cp, self.do_animate)
+    def generate_path(self):
+                
+        prev_dir = None
+        dir_couter = 0
+        stack = [self.cp]
+        changes = []
 
-    def write_animation(self, path: str) -> None:
+        while len(stack) != 0: 
+            available_directions = check_aviable_directions(self.cp, self.width, self.height, self.maze)
+            changed = False
+
+            if len(available_directions) == 0:
+                self.cp = stack.pop()
+            
+            else:
+                if prev_dir in available_directions and dir_couter < 1:
+                    dir = prev_dir
+                    dir_couter += 1
+                else:
+                    dir = available_directions[int(np.random.random()*(len(available_directions)))]
+                    dir_couter = 0
+                    
+                self.cp = (self.cp[0] + dir[0], self.cp[1] + dir[1])
+                prev_dir = dir
+                self.maze[self.cp[0], self.cp[1]] = not self.maze[self.cp[0], self.cp[1]]
+                changed = True
+                stack.append(self.cp)
+
+            if self.do_animate:
+                changes.append({'x': self.cp[0], 'y': self.cp[1], 'changed': changed})
+
+        if self.do_animate:
+            self.animation['changes'] = changes
+
+    def write_animation(self, path: str = './changes.json') -> None:
         if not self.do_animate:
             print('No animation has been generated')
         else:
@@ -107,34 +93,32 @@ class Maze:
                 tile = self.maze[x, y]
                 if tile:
                     maze_draw.point(xy=(x+1, y+1), fill=1)
-
         maze_img.resize((dwidth, dheight), resample=0).save(fp=path)
-        
-
-        return self.maze
 
 if __name__ == '__main__':
     
-    width = int(input('maze width/height: ')) + 2
-    dwidth = input('image width/height (blank means same as above): ')
-    do_maze_animation = input('Do you want animations files? (Y/n): ')
-    if do_maze_animation == 'y':
-        do_maze_animation = True
-    else:
+    width = int(input('Input maze width/height: ')) + 2
+    dwidth = input('Input image width/height (blank means same as above): ')
+    do_maze_animation = input('Do you want animations files? (Y/n): ').lower()
+
+    if do_maze_animation == 'n':
         do_maze_animation = False
-    
+    else:
+        do_maze_animation = True
+
     if dwidth == '':
         dwidth = width
     else:
         dwidth = int(dwidth)
     
     start = time.time()
+    print('Initializing maze...')
     maze = Maze(width, width, (0, 0), do_maze_animation)
-    print('Generating maze...')
+    print('Generating path...')
     maze.generate_path()
     end = time.time()
     print(f'Generated maze {maze.height}x{maze.width}')
     print(f'it took {round(end-start, 2)}s')
     print('Saving files...')
-    maze.write_maze(dwidth, dwidth, './maze.png')
-    maze.write_animation('./changes.json')
+    maze.write_maze(dwidth, dwidth)
+    maze.write_animation()
