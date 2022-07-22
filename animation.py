@@ -12,7 +12,7 @@ def save_resize_image(image, dwidth, dheight):
     os.remove(path)
     image.save(path)
 
-def generate_images(base, changes: dict, num_frames: int, divisor: int) -> None:
+def generate_images(base, changes: dict, start: list, num_frames: int, divisor: int) -> None:
     with Bar('Generating Images', max=divisor, suffix = '%(percent).1f%% - eta: %(eta)ds') as bar:
         if len(changes) < num_frames:
             skip_frames = 1
@@ -22,8 +22,10 @@ def generate_images(base, changes: dict, num_frames: int, divisor: int) -> None:
         frames = []
         for i, step in enumerate(changes):
             imdraw = ImageDraw.ImageDraw(base)
-            imdraw.point(xy=(step['x'], step['y']), fill=(255, 0, 0, 255))
-            imdraw.point(xy=(changes[i-1]['x'], changes[i-1]['y']), fill=(255, 255, 255, 255))
+            imdraw.point(xy=(step['x'], step['y']), fill=(255, 0, 0))
+            imdraw.point(xy=(changes[i-1]['x'], changes[i-1]['y']), fill=(255, 255, 255))
+            if i == 2:
+                imdraw.point(xy=(start[0], start[1]), fill=(0, 255, 0))
             if i % skip_frames == 0 or i == len(changes):
                 frames.append([base.copy(), generated_frame_counter])
                 generated_frame_counter += 1
@@ -98,7 +100,7 @@ def main():
 
     base = Image.new('RGB', (width, height), (0, 0, 0))
     basedraw = ImageDraw.ImageDraw(base)
-    basedraw.point(xy=(start[0], start[1]), fill=(255, 255, 255))
+    basedraw.point(xy=(start[0], start[1]), fill=(0, 255, 0))
 
     try:
         for file in os.listdir('./temp'):
@@ -109,7 +111,7 @@ def main():
 
     os.mkdir('./temp')
 
-    generate_images(base, changes, num_frames, divisor)
+    generate_images(base, changes, start, num_frames, divisor)
 
     if divisor > len(os.listdir('./temp')):
         divisor = len(os.listdir('./temp')) 

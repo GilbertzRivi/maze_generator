@@ -1,3 +1,4 @@
+from ctypes.wintypes import tagRECT
 import time, json
 import numpy as np
 from numba import njit
@@ -31,7 +32,7 @@ def check_aviable_directions(cpx: int, cpy: int, width: int, height: int, maze) 
 class Maze:
 
     def __init__(self, width: int, height: int, start: list, animation: bool = True) -> None:
-        self.width, self.height, self.cp, self.do_animate = width-2, height-2, start, animation
+        self.width, self.height, self.cp, self.do_animate, self.sp = width, height, start, animation, start
         self.maze = np.zeros((width, height), dtype=np.bool_)
         
         self.maze[start[0], start[1]] = not self.maze[start[0], start[1]]
@@ -81,25 +82,31 @@ class Maze:
 
     def write_maze(self, dwidth: int = None, dheight: int = None, path: str = './maze.png') -> None:
         if dwidth is None:
-            dwidth = self.width+2
+            dwidth = self.width
         if dheight is None:
-            dheight = self.height+2
-        maze_img = Image.new('1', size=(self.width+2, self.height+2))
+            dheight = self.height
+        maze_img = Image.new('RGB', size=(self.width, self.height))
         maze_draw = ImageDraw.Draw(maze_img)
-        maze_draw.point(xy=(0, 1), fill=1)
-        maze_draw.point(xy=(self.width+1, self.height), fill=1)
         for x in range(self.width):
             for y in range(self.height):
                 tile = self.maze[x, y]
                 if tile:
-                    maze_draw.point(xy=(x+1, y+1), fill=1)
+                    maze_draw.point(xy=(x, y), fill=(255, 255, 255))
+        maze_draw.point(xy=(self.sp[0], self.sp[1]), fill=(255, 0, 0))
+        maze_draw.point(xy=(self.width-1, self.height-1), fill=(0, 255, 0))
         maze_img.resize((dwidth, dheight), resample=0).save(fp=path)
-
+6
 if __name__ == '__main__':
     
-    width = int(input('Input maze width/height: ')) + 2
+    width = int(input('Input maze width/height: '))
     dwidth = input('Input image width/height (blank means same as above): ')
+    start = input('Input the point where maze should start (x/y (def 0/0)): ')
     do_maze_animation = input('Do you want animations files? (Y/n): ').lower()
+
+    if start == '':
+        sp = [0, 0]
+    else:
+        sp = [int(start.split('/')[0]), int(start.split('/')[1])]
 
     if do_maze_animation == 'n':
         do_maze_animation = False
@@ -113,7 +120,7 @@ if __name__ == '__main__':
     
     start = time.time()
     print('Initializing maze...')
-    maze = Maze(width, width, [0, 0], do_maze_animation)
+    maze = Maze(width, width, sp, do_maze_animation)
     print('Generating path...')
     maze.generate_path()
     end = time.time()
