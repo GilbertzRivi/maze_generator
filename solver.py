@@ -1,7 +1,7 @@
 import time, json
 import numpy as np
 from numba import njit
-from PIL import Image
+from PIL import Image, ImageDraw
 
 def printmaze(cp: list, width: int, height: int, maze) -> None:
     for x in range(width):
@@ -16,12 +16,17 @@ def printmaze(cp: list, width: int, height: int, maze) -> None:
         print(line)
 
 if __name__ == '__main__':
-    maze_fp = '' #input('Input path to maze (default ./maze.png): ')
+    maze_fp = input('Input path to maze (default ./maze.png): ')
     if maze_fp == '':
         maze_fp = './maze.png'
-    
+
     maze_png = Image.open(maze_fp)
+    maze_size = input('Input resolution of the maze, not image (defalut is image width/height): ')
     width, height = maze_png.size[0], maze_png.size[1]
+    org_width, org_height = width, height
+    if maze_size != '':
+        width, height = int(maze_size.split('/')[0]), int(maze_size.split('/')[1])
+        maze_png = maze_png.resize((width, height), resample=0)
 
     maze_list = np.zeros((width, height), dtype=np.bool_)
     for x in range(height):
@@ -71,9 +76,33 @@ if __name__ == '__main__':
             path.pop()
         else:
             path.append(cp)
-        printmaze(cp, width, height, maze_list)
-        input()
 
-        with open()
+    solved = Image.new('RGB', (width, height))
+    solved_draw = ImageDraw.Draw(solved)
 
-        
+    for x in range(width):
+        for y in range(height):
+            if maze_list[x, y]:
+                solved_draw.point((x, y), (255, 255, 255))
+
+    gradient_step = 255 * 2 / len(path)
+    gradient = [255, 0, 0]
+    gradient_int = gradient
+    for tile in path:
+        if gradient[0] > 0 and gradient[2] == 0:
+            gradient[0] -= gradient_step
+            gradient[1] += gradient_step
+        elif gradient[1] > 0 and gradient[0] == 0:
+            gradient[1] -= gradient_step
+            gradient[2] += gradient_step
+        for i in [0, 1, 2]:
+            if gradient[i] < 0:
+                gradient[i] = 0
+            elif gradient[i] > 255:
+                gradient[i] = 255
+        gradient_int = (int(gradient[0]), int(gradient[2]), int(gradient[1]))
+        solved_draw.point((tile[0], tile[1]), fill=gradient_int)
+
+    if org_height != height or org_width != width:
+        solved = solved.resize((org_width, org_height), resample=0)
+    solved.save('./solved.png')
