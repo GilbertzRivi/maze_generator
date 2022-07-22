@@ -67,10 +67,9 @@ def main():
     with open('changes.json', 'r') as file:
         animation = json.loads(file.read())
 
+    width, height = animation['size'][0], animation['size'][1]
     start = animation['start']
     changes = animation['changes']
-    width = len(start)
-    height = len(start['0'])
     divisor = len(changes)
     if divisor > 200:
         divisor = 200
@@ -97,13 +96,9 @@ def main():
     fps = 60
     num_frames = duration*fps 
 
-    base = Image.new('RGBA', (width, height), (0, 0, 0, 255))
+    base = Image.new('RGB', (width, height), (0, 0, 0))
     basedraw = ImageDraw.ImageDraw(base)
-    for x in start:
-        for y in start[x]:
-            tile = start[x][y]
-            if tile == 'p':
-                basedraw.point(xy=(int(x), int(y)), fill=(255, 255, 255, 255))
+    basedraw.point(xy=(start[0], start[1]), fill=(255, 255, 255))
 
     try:
         for file in os.listdir('./temp'):

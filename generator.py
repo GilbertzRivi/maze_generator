@@ -4,12 +4,12 @@ from numba import njit
 from PIL import Image, ImageDraw
 
 @njit(cache=True)
-def check_tile_neighbours(coordinates: tuple, width, height, maze) -> bool:
+def check_tile_neighbours(cpx: int, cpy: int, width: int, height: int, maze) -> bool:
     directions_8 = [(1,0), (-1,0), (0,1), (0,-1), (1, 1), (1, -1), (-1, 1), (-1, -1)]
     type_p_count = 0
     for dir in directions_8:
-        x = coordinates[0] + dir[0]
-        y = coordinates[1] + dir[1]
+        x = cpx + dir[0]
+        y = cpy + dir[1]
         if 0 <= x < width and 0 <= y < height and maze[x, y]:
             type_p_count += 1
             if type_p_count > 2:
@@ -17,26 +17,26 @@ def check_tile_neighbours(coordinates: tuple, width, height, maze) -> bool:
     return True
 
 @njit(cache=True)
-def check_aviable_directions(cp, width, height, maze):
+def check_aviable_directions(cpx: int, cpy: int, width: int, height: int, maze) -> list:
     available_directions = []
     directions_4 = [(1,0), (-1,0), (0,1), (0,-1)]
     for dir in directions_4:
-        if  0 <= cp[0] + dir[0] < width and \
-            0 <= cp[1] + dir[1] < height and \
-            not maze[cp[0] + dir[0], cp[1] + dir[1]] and \
-            check_tile_neighbours((cp[0] + dir[0], cp[1] + dir[1]), width, height, maze):
+        if  0 <= cpx + dir[0] < width and \
+            0 <= cpy + dir[1] < height and \
+            not maze[cpx + dir[0], cpy + dir[1]] and \
+            check_tile_neighbours(cpx + dir[0], cpy + dir[1], width, height, maze):
             available_directions.append(dir)
     return available_directions
 
 class Maze:
 
-    def __init__(self, width: int, height: int, start: tuple, animation: bool = True) -> None:
+    def __init__(self, width: int, height: int, start: list, animation: bool = True) -> None:
         self.width, self.height, self.cp, self.do_animate = width-2, height-2, start, animation
         self.maze = np.zeros((width, height), dtype=np.bool_)
         
-        self.maze[self.cp[0], self.cp[1]] = not self.maze[self.cp[0], self.cp[1]]
+        self.maze[start[0], start[1]] = not self.maze[start[0], start[1]]
                 
-        self.animation = {'start': (width, height), 'changes': []}
+        self.animation = {'start': (start[0], start[1]), 'size': (width, width), 'changes': []}
         
     def generate_path(self):
                 
@@ -46,7 +46,7 @@ class Maze:
         changes = []
 
         while len(stack) != 0: 
-            available_directions = check_aviable_directions(self.cp, self.width, self.height, self.maze)
+            available_directions = check_aviable_directions(self.cp[0], self.cp[1], self.width, self.height, self.maze)
             changed = False
 
             if len(available_directions) == 0:
@@ -113,7 +113,7 @@ if __name__ == '__main__':
     
     start = time.time()
     print('Initializing maze...')
-    maze = Maze(width, width, (0, 0), do_maze_animation)
+    maze = Maze(width, width, [0, 0], do_maze_animation)
     print('Generating path...')
     maze.generate_path()
     end = time.time()
