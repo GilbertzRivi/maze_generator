@@ -246,5 +246,6 @@ if __name__ == '__main__':
     print(f'it took {round(end-start, 2)}s')
     print('Saving maze...')
     maze.write_maze()
-    print('Generating animation...')
-    maze.create_animation(duration, fps)
+    if do_maze_animation:
+        print('Generating animation...')
+        maze.create_animation(duration, fps)
